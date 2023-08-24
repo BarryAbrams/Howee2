@@ -1,6 +1,9 @@
+from _utils import *
+
 from brain import Brain
 
 def boot_systems():
+    print_c("Check the Tires and Light the Fires...", "magenta")
     # Initialize motors, sensors, flask, database, etc.
     pass
 

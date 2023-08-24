@@ -1,3 +1,5 @@
+from _utils import you_speak
+
 class Ears:
     def listen_for_wake_word(self):
         # Implementation
