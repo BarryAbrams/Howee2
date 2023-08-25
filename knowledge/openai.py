@@ -53,7 +53,7 @@ class OpenAI(Knowledge):
         messages = [
             {
                 "role": "system",
-                "content": str('You interpret intent from a passage of text. The intent categories you return are "general", "system", "weather", and "news". "System" is utilized for any kind of volume commands or going to sleep. If the intent is a system, it should return a key for what action to take: volume_up, volume_down, mute and unmute. if the intent is weather, try and interpret the city name too and pass that as the action. You return a confidence rating for each category too, if the confidence is over 10%')
+                "content": str('You interpret intent from a passage of text. The intent categories you return are "general", "system", "weather", and "news". "System" is utilized for any kind of volume commands or going to sleep. If the intent is a system, it should return a key for what action to take: volume_up, volume_down, mute and unmute. if the intent is weather, try and interpret if it would call for a multi-day forecast or the current weather and return it as the action (either "forecast" or "current"). Then, determine the city name and pass that as a city paramater. You return a confidence rating for each category on a scale of 0 to 100, if the confidence is over 10%')
             },
             {
                 "role":"user",
@@ -61,7 +61,7 @@ class OpenAI(Knowledge):
             },
             {
                 "role": "system",
-                "content": str('You always respond with a JSON response, matching the format {"intents":[{"type":"intent_categoryA", "confidence":intent_confidenceA, "action":"volume_up"}, {"type":"intent_categoryB", "confidence":intent_confidenceb}]}. This JSON should be the ONLY thing in your final response.')
+                "content": str('You always respond with a JSON response, matching the format {"intents":[{"type":"intent_categoryA", "confidence":intent_confidenceA, "action":"volume_up"}, {"type":"intent_categoryB", "confidence":intent_confidenceb, "city":"Chicago"}]}. This JSON should be the ONLY thing in your final response.')
             }
         ]
 

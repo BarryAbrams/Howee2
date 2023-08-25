@@ -9,5 +9,5 @@ def boot_systems():
 
 if __name__ == "__main__":
     boot_systems()
-    brain = Brain("terminal")
+    brain = Brain("audio")
     brain.start()

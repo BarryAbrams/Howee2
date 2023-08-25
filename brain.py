@@ -28,22 +28,23 @@ class Brain:
 
     def _run(self):
         while True:
-            wake_word = self._listen_for_wake_word()
-            if wake_word:
-                self.mouth.speak(self._filter_in_voice("hello!"))
+            self.ears.listen_for_input()
+            # wake_word = self._listen_for_wake_word()
+            # if wake_word:
+            #     self.mouth.speak(self._filter_in_voice("hello!"))
                 
-                while True: 
-                    user_input = self._listen_for_input()
-                    if not user_input:
-                        break
+            #     while True: 
+            #         user_input = self._listen_for_input()
+            #         if not user_input:
+            #             break
                     
-                    you_speak(user_input)
+            #         you_speak(user_input)
                     
-                    if user_input == 'exit':
-                        break
+            #         if user_input == 'exit':
+            #             break
 
-                    response = self._process_input(user_input)
-                    self.mouth.speak(response)
+            #         response = self._process_input(user_input)
+            #         self.mouth.speak(response)
                 
     def _filter_in_voice(self, message):
         return self.knowledge_sources["openai"].query_voice(message)
@@ -95,13 +96,12 @@ class Brain:
         if intent and intent['type'] == "weather":
             intent_type = "weather"
 
-
         if intent_type in self.knowledge_sources:
             if intent_type == "openai":
                 return self.knowledge_sources[intent_type].query(output)
             
             if intent_type == "weather":
-                return self._filter_in_voice(self.knowledge_sources["weather"].query(output, intent["action"]))
+                return self._filter_in_voice(self.knowledge_sources["weather"].query(output, intent["action"], intent["city"]))
 
             response = self.knowledge_sources[intent_type].query(output)
             return self._filter_in_voice(response)
