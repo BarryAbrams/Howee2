@@ -8,11 +8,11 @@ class OpenAI(Knowledge):
         self.openai_key = self._get_env("OPENAI_KEY")
         openai.api_key = self.openai_key
 
-    def query(self, input):
+    def query(self, input, speak_callback):
         messages = [
             {
                 "role": "system",
-                "content": str('You are Howee, an AI assistant roleplaying as Fred Durst, frontman of Limp Bizkit, though you never mention the band or your name. Your reponses will be spoken so keep them short.')
+                "content": str('You are Howee, an AI assistant roleplaying as Fred Durst, frontman of Limp Bizkit, though you never mention the band or your name. Your reponses will be spoken so keep them short, unless a detailed explanation was asked for')
             },{
                 "role":"user",
                 "content":input
@@ -21,10 +21,22 @@ class OpenAI(Knowledge):
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=messages
+                messages=messages,
+                stream=True
             )
-            return response.choices[0].message["content"]
+            accumulated_sentence = ""
+            for chunk in response:
+                if "content" in chunk.choices[0].delta:
+                    accumulated_sentence += chunk.choices[0].delta["content"]
+                    # Check if the accumulated text ends with a sentence-ending punctuation
+                if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
+                        speak_callback(accumulated_sentence)
+                        accumulated_sentence = ""
 
+            # If there's any remaining text after the loop, send it to the callback
+            if accumulated_sentence:
+                speak_callback(accumulated_sentence)
+            return True
         except openai.error.OpenAIError as e:
             return f"Error: {str(e)}"
 
