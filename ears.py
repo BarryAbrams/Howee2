@@ -6,18 +6,24 @@ from dotenv import load_dotenv
 load_dotenv()
 from threading import Thread
 from tabulate import tabulate
-from _utils import you_speak
+from _utils import *
 
 class Ears:
     def __init__(self):
         self.access_key = os.environ.get("PICOVOICE_KEY")
-        self.porcupine = pvporcupine.create(access_key=self.access_key, keywords=["hey howey"], keyword_paths=["models/Hey-Howey_en_mac_v2_2_0.ppn"])
-        self.leopard = pvleopard.create(access_key=self.access_key,enable_automatic_punctuation=True)
-        self.recorder = PvRecorder(frame_length=512, device_index=-1)
+        try:
+            self.porcupine = pvporcupine.create(access_key=self.access_key, keywords=["hey howey"], keyword_paths=["models/Hey-Howey_en_mac_v2_2_0.ppn"])
+            self.leopard = pvleopard.create(access_key=self.access_key,enable_automatic_punctuation=True)
+            self.recorder = PvRecorder(frame_length=512, device_index=-1)
+        except:
+            self.porcupine = None
+            self.leopard = None
+            self.recorder = None
+            print_c("Picovoice not available. Howee has no ears.", "red")
 
     def listen_for_wake_word(self):
         try:
-            while True:
+            while True and self.recorder is not None:
                 pcm = self.recorder.read()
                 keyword_index = self.porcupine.process(pcm)
                 if keyword_index >= 0:
@@ -28,7 +34,7 @@ class Ears:
             self._cleanup()
 
     def listen_for_input(self):
-        while True:
+        while True and self.recorder is not None:
             try:
                 pcm = self.recorder.read()
                 transcript, words = self.leopard.process(pcm)

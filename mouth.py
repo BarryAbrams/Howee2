@@ -28,6 +28,8 @@ class Mouth:
 
 
     def play_audio(self, output_file):
+        os.remove(output_file)
+        return
         try:
             # Initialize pygame mixer and play the audio file
             pygame.mixer.init(frequency=int(44100 * 1.15))

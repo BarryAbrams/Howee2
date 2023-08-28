@@ -1,3 +1,15 @@
+from enum import Enum
+
+class AwakeState(Enum):
+    AWAKE = 1
+    ASLEEP = 2
+
+class ActionState(Enum):
+    TALKING = 1
+    PROCESSING = 2
+    LISTENING = 3
+    IDLE = 4
+
 def print_c(text, color="white"):
     color_codes = {
         "black": "\033[30m",

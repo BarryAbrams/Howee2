@@ -4,6 +4,7 @@ from _utils import *
 from knowledge import System, OpenAI, Weather
 from mouth import Mouth
 from ears import Ears
+from flask_socketio import SocketIO
 
 user_input_value = None
 
@@ -12,76 +13,72 @@ def get_input_from_user(prompt):
     user_input_value = input_c(prompt)
 
 class Brain:
-    def __init__(self, mode='audio'):
-        self.mode = mode
+    def __init__(self):
         self.mouth = Mouth()
-        if mode == "audio":
-            self.ears = Ears()
+        self.ears = Ears()
         self.knowledge_sources = {
-            "system": System(),
-            "openai": OpenAI(),
-            "weather": Weather()
+            "system": System(self.transition),
+            "openai": OpenAI(self.transition),
+            "weather": Weather(self.transition)
         }
+        self.awake_state = AwakeState.ASLEEP
+        self.action_state = ActionState.LISTENING
+        self.awake_state_prev = AwakeState.ASLEEP
+        self.action_state_prev = ActionState.LISTENING
+        self.user_input = None
+        self.socketio = None
 
     def start(self):
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
+    def transition(self, awake=None, action=None):
+        print("state_change", awake, action)
+        if self.socketio:
+            self.socketio.emit('state_change', {'action_state': awake, 'awake_state': action})
+        if awake:
+            self.awake_state = awake
+        if action:
+            self.action_state = action
+
     def _run(self):
         while True:
-            wake_word = self._listen_for_wake_word()
-            if wake_word:
-                self.mouth.speak(self._filter_in_voice("hello!"))
-                
-                while True: 
-                    user_input = self._listen_for_input()
-                    if not user_input:
-                        break
-                    
-                    you_speak(user_input)
-                    
-                    if user_input == 'exit':
-                        break
+            if self.awake_state == AwakeState.ASLEEP:
+                wake_word = self._listen_for_wake_word()  # non-flask input handling
+                if wake_word:
+                    self.transition(AwakeState.AWAKE, ActionState.LISTENING)
+            elif self.awake_state == AwakeState.AWAKE:
+                if self.action_state == ActionState.LISTENING:
+                    input_words = self._listen_for_input() # non-flask input handling
+                    if input_words:
+                        self.transition(AwakeState.AWAKE, ActionState.PROCESSING)
+                elif self.action_state == ActionState.PROCESSING:
+                    if self.action_state != self.action_state_prev:
+                        self._process_input(self.user_input)
+                elif self.action_state == ActionState.TALKING:
+                    # this handling will happen within the functions called _process_input from
+                    pass
+                elif self.action_state == ActionState.IDLE:
+                    time.sleep(1.0)
+                    self.action_state = ActionState.LISTENING
+                    pass
 
-                    response = self._process_input(user_input)
-                    # self.mouth.speak(response)
+            self.action_state_prev = self.action_state
+            self.awake_state_prev = self.awake_state
             
     def _filter_in_voice(self, message):
-        return self.knowledge_sources["openai"].query_voice(message)
+        return self.knowledge_sources["openai"].query_voice(message, self.mouth.speak)
 
     def _listen_for_wake_word(self):
-        if self.mode == 'audio':
-            detected_word = self.ears.listen_for_wake_word()
-            if detected_word:
-                you_speak(detected_word)
-                return detected_word
-        elif self.mode == 'terminal':
-            input_word = input_c("Enter wake word (or type 'exit' to quit): ")
-            if input_word in ['hey howee', 'exit']:
-                you_speak(input_word)
-                return input_word
+        detected_word = self.ears.listen_for_wake_word()
+        if detected_word:
+            you_speak(detected_word)
+            return detected_word
+
 
     def _listen_for_input(self):
-        if self.mode == 'audio':
-            return self.ears.listen_for_input()
-        elif self.mode == 'terminal':
-            global user_input_value
-
-            user_input_value = None
-            input_thread = threading.Thread(target=get_input_from_user, args=("Enter your command (or 'exit' to return to wake word listening): ",))
-            input_thread.start()
-
-            end_time = time.time() + 25
-            while input_thread.is_alive() and time.time() < end_time:
-                time.sleep(0.1)
-
-            if time.time() >= end_time and not user_input_value:
-                self.mouth.speak(self._filter_in_voice("I'm going back to sleep. Wake me up when you need me."))
-                time.sleep(.1)
-                return None
-
-            return user_input_value
-        
+        return self.ears.listen_for_input()
+               
     def _process_input(self, user_input):
         intent = self.knowledge_sources["openai"].query_intent(user_input)
 
@@ -97,14 +94,18 @@ class Brain:
 
         if intent_type in self.knowledge_sources:
             if intent_type == "openai":
-                return self.knowledge_sources[intent_type].query(output, self.mouth.speak)
+                words = self.knowledge_sources[intent_type].query(output, self.mouth.speak)
+                
             elif intent_type == "weather":
                 city = "Champaign"
                 if "city" in intent:
                     city = intent["city"]
-                return self._filter_in_voice(self.knowledge_sources["weather"].query(output, intent["action"], city))
+                words = self._filter_in_voice(self.knowledge_sources["weather"].query(output, intent["action"], city))
             else:
                 response = self.knowledge_sources[intent_type].query(output)
-                return self._filter_in_voice(response)
+                words = self._filter_in_voice(response)
+
+
+            return words
 
         return "I'm not sure how to handle that request."

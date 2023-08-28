@@ -3,8 +3,8 @@ import json, requests
 from datetime import datetime, timedelta
 
 class Weather(Knowledge):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, transition_state_callback):
+        super().__init__(transition_state_callback)
         self.api_key = self._get_env("WEATHER_KEY")
         self.base_url = "http://api.openweathermap.org/data/2.5/weather?"
         self.forecast_url = "https://api.openweathermap.org/data/2.5/forecast?"
