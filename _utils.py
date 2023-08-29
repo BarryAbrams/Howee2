@@ -1,14 +1,26 @@
 from enum import Enum
 
+socketio = None
+
+def set_socketio_instance(sio):
+    global socketio
+    socketio = sio
+
 class AwakeState(Enum):
     AWAKE = 1
     ASLEEP = 2
+
+    def to_json(self):
+        return self.name
 
 class ActionState(Enum):
     TALKING = 1
     PROCESSING = 2
     LISTENING = 3
     IDLE = 4
+
+    def to_json(self):
+        return self.name
 
 def print_c(text, color="white"):
     color_codes = {
@@ -41,11 +53,17 @@ def input_c(text, color="yellow"):
     
     return input(f"\n{color_codes[color]}{text}{reset_code}\n")
 
+def stop_signal():
+    socketio.emit('response', {'type':"stop" })
+
 
 def howee_speak(text):
     if text:
         print_c("HOWEE: " + text, "cyan")
+        socketio.emit('response', {'type':"incoming", 'from':"Howee", "message":text})
 
 def you_speak(text):
     if text:
         print_c("YOU: " + text, "green")
+        socketio.emit('response', {'type':"outgoing", 'from':"You", "message":text})
+        stop_signal()

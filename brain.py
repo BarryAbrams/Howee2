@@ -31,40 +31,56 @@ class Brain:
     def start(self):
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
+        self.transition(AwakeState.ASLEEP, ActionState.LISTENING)
 
     def transition(self, awake=None, action=None):
-        print("state_change", awake, action)
-        if self.socketio:
-            self.socketio.emit('state_change', {'action_state': awake, 'awake_state': action})
         if awake:
             self.awake_state = awake
         if action:
             self.action_state = action
 
+        self.print_state()
+        self.emit_state()
+
+    def print_state(self):
+        print(self.awake_state, self.action_state)
+
+    def emit_state(self):
+        if self.socketio:
+            self.socketio.emit('state_change', {'awake_state': self.awake_state.to_json(), 'action_state': self.action_state.to_json()})
+
     def _run(self):
         while True:
             if self.awake_state == AwakeState.ASLEEP:
-                wake_word = self._listen_for_wake_word()  # non-flask input handling
+                wake_word = self._listen_for_wake_word() or self.user_input == "hey howee"
                 if wake_word:
+                    if self.user_input:
+                        you_speak(self.user_input)
+                        self._filter_in_voice("Hello")
                     self.transition(AwakeState.AWAKE, ActionState.LISTENING)
             elif self.awake_state == AwakeState.AWAKE:
                 if self.action_state == ActionState.LISTENING:
-                    input_words = self._listen_for_input() # non-flask input handling
+                    input_words = self._listen_for_input() or self.user_input
                     if input_words:
-                        self.transition(AwakeState.AWAKE, ActionState.PROCESSING)
+                        if self.user_input:
+                            you_speak(self.user_input)
+                            self.transition(AwakeState.AWAKE, ActionState.PROCESSING)
+                            self._process_input(self.user_input)
                 elif self.action_state == ActionState.PROCESSING:
-                    if self.action_state != self.action_state_prev:
-                        self._process_input(self.user_input)
+                    # this handling will happen within the functions called _process_input from
+                    pass
                 elif self.action_state == ActionState.TALKING:
                     # this handling will happen within the functions called _process_input from
                     pass
                 elif self.action_state == ActionState.IDLE:
-                    time.sleep(1.0)
-                    self.action_state = ActionState.LISTENING
+                    self.transition(AwakeState.AWAKE, ActionState.LISTENING)
                     pass
-
+            
+            self.user_input = None
             self.action_state_prev = self.action_state
             self.awake_state_prev = self.awake_state
+
+            time.sleep(0.01)
             
     def _filter_in_voice(self, message):
         return self.knowledge_sources["openai"].query_voice(message, self.mouth.speak)
@@ -104,7 +120,6 @@ class Brain:
             else:
                 response = self.knowledge_sources[intent_type].query(output)
                 words = self._filter_in_voice(response)
-
 
             return words
 

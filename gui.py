@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request, render_template
 from flask_socketio import SocketIO
-
-from _utils import *
+from _utils import *  
 
 class GUI:
     def __init__(self, brain):
@@ -19,17 +18,17 @@ class GUI:
         @self.socketio.on('send-input')
         def handle_send_input(data):
             user_input = data['input']
-            
-            # Pass the user input to the Brain instance for processing
             self.brain.user_input = user_input
-            self.brain.transition(AwakeState.AWAKE, ActionState.PROCESSING)
             
-            # Emit a response back to the client
-            self.socketio.emit('response', {'response': 'Received: ' + user_input})
+        @self.socketio.on('request-state')
+        def request_state():
+            print("state")
+            self.brain.emit_state()
 
         # Add other routes as needed.
 
     def run(self):
-        self.socketio.run(self.app, debug=True)
+
+        self.socketio.run(self.app, host='0.0.0.0', port=5000, debug=False)
 
 

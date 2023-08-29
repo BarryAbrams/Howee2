@@ -10,7 +10,7 @@ class OpenAI(Knowledge):
         openai.api_key = self.openai_key
 
     def query(self, input, speak_callback):
-        self.transition_state_callback(AwakeState.AWAKE, ActionState.PROCESSING)
+        # self.set_state(AwakeState.AWAKE, ActionState.PROCESSING)
         messages = [
             {
                 "role": "system",
@@ -33,14 +33,16 @@ class OpenAI(Knowledge):
                     accumulated_sentence += chunk.choices[0].delta["content"]
                     # Check if the accumulated text ends with a sentence-ending punctuation
                 if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
-                        speak_callback(accumulated_sentence)
-                        accumulated_sentence = ""
+                    speak_callback(accumulated_sentence)
+                    accumulated_sentence = ""
+                if chunk.choices[0].finish_reason == "stop":
+                    stop_signal()
 
             # If there's any remaining text after the loop, send it to the callback
-            if accumulated_sentence:
-                speak_callback(accumulated_sentence)
+            # if accumulated_sentence:
+            #     speak_callback(accumulated_sentence, True)
 
-            self.transition_state_callback(AwakeState.AWAKE, ActionState.IDLE)
+            self.set_state(AwakeState.AWAKE, ActionState.IDLE)
 
             return accumulated_sentence
         except openai.error.OpenAIError as e:
@@ -57,7 +59,6 @@ class OpenAI(Knowledge):
             }]
 
         try:
-            self.transition_state_callback(AwakeState.AWAKE, ActionState.PROCESSING)
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
@@ -72,6 +73,8 @@ class OpenAI(Knowledge):
                 if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
                         speak_callback(accumulated_sentence)
                         accumulated_sentence = ""
+                if chunk.choices[0].finish_reason == "stop":
+                    stop_signal()
 
             # If there's any remaining text after the loop, send it to the callback
             if accumulated_sentence:

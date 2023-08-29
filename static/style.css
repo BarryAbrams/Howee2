@@ -1,0 +1,33 @@
+#responseLog {
+    display:flex;
+    flex-direction: column;
+    list-style:none;
+    justify-content: flex-end;
+    gap:.5em;
+    height:80vh;
+    padding:.5em;
+    overflow-y: scroll;
+    border:1px solid #aaa;
+}
+
+#responseLog li {
+   border-radius:10px;
+   max-width: 90%;
+}
+
+#responseLog li strong {
+    display:none;
+}
+
+.message-type-outgoing {
+    background-color: #e6e6e6; /* Light gray */
+    margin-left: auto;
+    text-align: right;
+}
+
+.message-type-incoming {
+    background-color: #0d6efd; /* Green */
+    color: white;
+    margin-right: auto;
+    text-align: left;
+}

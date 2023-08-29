@@ -8,6 +8,7 @@ class Knowledge:
         pass
 
     def set_state(self, awake_state, action_state):
+        print("set state")
         if self.transition_state_callback:
             self.transition_state_callback(awake_state, action_state)
 
