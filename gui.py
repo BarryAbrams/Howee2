@@ -30,6 +30,6 @@ class GUI:
 
     def run(self):
 
-        self.socketio.run(self.app, host='0.0.0.0', port=5000, debug=False)
+        self.socketio.run(self.app, host='0.0.0.0', port=5001, debug=False)
 
 

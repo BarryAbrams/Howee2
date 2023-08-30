@@ -71,7 +71,21 @@ socket.on('state_change', function(data) {
         $(".eyes td[data-pos='"+x+","+y+"']").addClass("selected")
     });
 
+    var high = 0;
+
+
     socket.on('mouth_change', function(data) {
-        console.log(data)
+        // $(".volume").text(data.level)
+        if (data.level > high) {
+            high = data.level
+        }
+
+        let newRadius = data.level * 150;
+
+        if (newRadius < 1) {
+            newRadius = 1;
+        }
+
+        $("#volumeCircle").attr("r", newRadius);
     });
 });
