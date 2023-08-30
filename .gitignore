@@ -2,3 +2,5 @@ __pycache__/
 venv/
 .env
 .passwords
+node_modules
+audio/*

@@ -8,10 +8,11 @@ class OpenAI(Knowledge):
         super().__init__(transition_state_callback)
         self.openai_key = self._get_env("OPENAI_KEY")
         openai.api_key = self.openai_key
+        self.history = []
 
     def query(self, input, speak_callback):
         # self.set_state(AwakeState.AWAKE, ActionState.PROCESSING)
-        messages = [
+        messages = self.history + [
             {
                 "role": "system",
                 "content": str('You are Howee, an AI assistant roleplaying as Fred Durst, frontman of Limp Bizkit, though you never mention the band or your name. Your reponses will be spoken so keep them short, unless a detailed explanation was asked for')
@@ -28,19 +29,18 @@ class OpenAI(Knowledge):
             )
             self.transition_state_callback(AwakeState.AWAKE, ActionState.TALKING)
             accumulated_sentence = ""
+            total_response = ""
             for chunk in response:
                 if "content" in chunk.choices[0].delta:
                     accumulated_sentence += chunk.choices[0].delta["content"]
+                    total_response += chunk.choices[0].delta["content"] 
                     # Check if the accumulated text ends with a sentence-ending punctuation
                 if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
                     speak_callback(accumulated_sentence)
                     accumulated_sentence = ""
                 if chunk.choices[0].finish_reason == "stop":
                     stop_signal()
-
-            # If there's any remaining text after the loop, send it to the callback
-            # if accumulated_sentence:
-            #     speak_callback(accumulated_sentence, True)
+                    self.update_history(input, total_response)
 
             self.set_state(AwakeState.AWAKE, ActionState.IDLE)
 
@@ -49,7 +49,7 @@ class OpenAI(Knowledge):
             return f"Error: {str(e)}"
 
     def query_voice(self, input, speak_callback):
-        messages = [
+        messages = self.history + [
             {
                 "role": "system",
                 "content": str('You are Howee, an AI assistant roleplaying as Fred Durst, frontman of Limp Bizkit, though you never mention the band or your name.  I need you to rephrase the following in your own voice: ')
@@ -57,6 +57,7 @@ class OpenAI(Knowledge):
                 "role":"user",
                 "content":input
             }]
+
 
         try:
             response = openai.ChatCompletion.create(
@@ -69,12 +70,12 @@ class OpenAI(Knowledge):
             for chunk in response:
                 if "content" in chunk.choices[0].delta:
                     accumulated_sentence += chunk.choices[0].delta["content"]
-                    # Check if the accumulated text ends with a sentence-ending punctuation
                 if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
                         speak_callback(accumulated_sentence)
                         accumulated_sentence = ""
                 if chunk.choices[0].finish_reason == "stop":
                     stop_signal()
+
 
             # If there's any remaining text after the loop, send it to the callback
             if accumulated_sentence:
@@ -102,6 +103,8 @@ class OpenAI(Knowledge):
             }
         ]
 
+    
+
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -115,11 +118,16 @@ class OpenAI(Knowledge):
                 response_content = {"intents":[{"type":"general", "confidence":75}]} 
 
             sorted_intents = sorted(response_content["intents"], key=lambda x: x["confidence"], reverse=True)
-            print(sorted_intents)
-            if sorted_intents[0]["confidence"] > 50:
+            if len(sorted_intents) > 0 and sorted_intents[0]["confidence"] > 50:
                 return sorted_intents[0]
             else:
                 return None  # Or any default/fallback value
 
         except openai.error.OpenAIError as e:
             return f"Error: {str(e)}"
+        
+    def update_history(self, user_message, ai_response):
+        self.history.append({"role": "user", "content": user_message})
+        self.history.append({"role": "system", "content": ai_response})
+        # Keep only the last 6 messages (3 interactions)
+        self.history = self.history[-6:]

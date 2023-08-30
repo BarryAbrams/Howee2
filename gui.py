@@ -22,8 +22,9 @@ class GUI:
             
         @self.socketio.on('request-state')
         def request_state():
-            print("state")
+            # print("state")
             self.brain.emit_state()
+            self.brain.eyes.emit_state()
 
         # Add other routes as needed.
 

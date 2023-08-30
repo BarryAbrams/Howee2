@@ -4,6 +4,7 @@ from _utils import *
 from knowledge import System, OpenAI, Weather
 from mouth import Mouth
 from ears import Ears
+from eyes import Eyes
 from flask_socketio import SocketIO
 
 user_input_value = None
@@ -16,6 +17,7 @@ class Brain:
     def __init__(self):
         self.mouth = Mouth()
         self.ears = Ears()
+        self.eyes = Eyes()
         self.knowledge_sources = {
             "system": System(self.transition),
             "openai": OpenAI(self.transition),
@@ -27,11 +29,13 @@ class Brain:
         self.action_state_prev = ActionState.LISTENING
         self.user_input = None
         self.socketio = None
-
+        
     def start(self):
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
         self.transition(AwakeState.ASLEEP, ActionState.LISTENING)
+        self.eyes.socketio = self.socketio
+        self.mouth.socketio = self.socketio
 
     def transition(self, awake=None, action=None):
         if awake:
@@ -43,7 +47,8 @@ class Brain:
         self.emit_state()
 
     def print_state(self):
-        print(self.awake_state, self.action_state)
+        # print(self.awake_state, self.action_state)
+        pass
 
     def emit_state(self):
         if self.socketio:

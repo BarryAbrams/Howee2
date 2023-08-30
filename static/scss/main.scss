@@ -1,0 +1,159 @@
+// Import Bootstrap's SCSS
+@import "node_modules/bootstrap/scss/bootstrap";
+
+.responseLog-container {
+    height: calc(100vh - 120px);
+    overflow-y: scroll;
+}
+
+#responseLog {
+    display:flex;
+    flex-direction: column;
+    list-style:none;
+    justify-content: flex-end;
+    gap:.8em;
+    padding:.8em;
+    min-height:100%;
+    background-color:var(--bs-dark-bg-subtle);
+}
+
+.form-control {
+    &:focus {
+        outline:none;
+        box-shadow: none;
+        border-color:unset;
+    }
+}
+
+#responseLog li {
+    border:0px;
+    border-radius:15px;
+    max-width: 90%;
+}
+
+#responseLog li strong {
+    display:none;
+}
+
+.message-type-incoming {
+    margin-right: auto;
+    text-align: left;
+    background-color:var(--bs-secondary-bg);
+}
+
+.message-type-outgoing {
+    margin-left: auto;
+    text-align: right;
+    background-color:var(--bs-primary);
+}
+
+
+.emotions {
+    display:flex;
+    justify-content: center;
+    gap:1em;
+    
+    .face {
+        height:calc(200px + 1em);
+        width:calc(200px + 1em);
+        border:1px solid #777;
+        border-radius:10px;
+        &[data-emotion="asleep"] {
+            background: url('/static/icons/emotion_asleep.svg');
+        }
+        
+        &[data-emotion="concerned"] {
+            background: url('/static/icons/emotion_concerned.svg');
+        }
+        
+        &[data-emotion="excited"] {
+            background: url('/static/icons/emotion_excited.svg');
+        }
+        
+        &[data-emotion="grossed"] {
+            background: url('/static/icons/emotion_grossed.svg');
+        }
+        
+        &[data-emotion="happy"] {
+            background: url('/static/icons/emotion_happy.svg');
+        }
+        
+        &[data-emotion="idle"] {
+            background: url('/static/icons/emotion_idle.svg');
+        }
+        
+        &[data-emotion="love"] {
+            background: url('/static/icons/emotion_love.svg');
+        }
+        
+        &[data-emotion="sad"] {
+            background: url('/static/icons/emotion_sad.svg');
+        }
+        
+        &[data-emotion="silly"] {
+            background: url('/static/icons/emotion_silly.svg');
+        }
+        
+        &[data-emotion="thinking"] {
+            background: url('/static/icons/emotion_thinking.svg');
+        }
+        
+        &[data-emotion="surprised"] {
+            background: url('/static/icons/emotion_surprised.svg');
+        }
+        
+        &[data-emotion="tired"] {
+            background: url('/static/icons/emotion_tired.svg');
+        }
+    }
+}
+
+.layer {
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    gap:1em;
+    margin-bottom:1em;
+}
+
+.volume {
+    border:1px solid #777;
+    border-radius:10px;
+    height:100px;
+    width:100px;
+}
+
+.eyes {
+    display:block;
+    border:1px solid #777;
+    border-radius:10px;
+    height:100px;
+    width:100px;
+    overflow: hidden;
+    table {
+        tr {
+            td {
+                width:11.11px;
+                height:11.11px;
+                border-right:1px solid #333;
+                border-bottom:1px solid #333;
+                &:last-child {
+                    border-right:0;
+                }
+                &.selected {
+                    position:relative;
+                    &:after {
+                        content:"*";
+                        display:block;
+                        position:absolute;
+                        top:-4px;
+                        left:1px;
+                    }
+                }
+            }
+            &:last-child td {
+                border-bottom:0;
+            }
+        }
+    }
+}
