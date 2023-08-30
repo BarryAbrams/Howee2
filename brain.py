@@ -29,6 +29,7 @@ class Brain:
         self.action_state_prev = ActionState.LISTENING
         self.user_input = None
         self.socketio = None
+        self.listening_for_wake_word = False
         
     def start(self):
         self.thread = threading.Thread(target=self._run)
@@ -36,6 +37,7 @@ class Brain:
         self.transition(AwakeState.ASLEEP, ActionState.LISTENING)
         self.eyes.socketio = self.socketio
         self.mouth.socketio = self.socketio
+        self.ears.socketio = self.socketio
 
     def transition(self, awake=None, action=None):
         if awake:
@@ -94,6 +96,7 @@ class Brain:
         detected_word = self.ears.listen_for_wake_word()
         if detected_word:
             you_speak(detected_word)
+            self.listening_for_wake_word = False  # Reset the flag when done listening
             return detected_word
 
 

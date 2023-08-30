@@ -86,6 +86,25 @@ socket.on('state_change', function(data) {
             newRadius = 1;
         }
 
+        if (newRadius > 1) {
+            $("#micCircle").attr("r", 1);
+        }
+
         $("#volumeCircle").attr("r", newRadius);
+    });
+
+    socket.on('ear_change', function(data) {
+        // console.log(data.level)
+        if (data.level > high) {
+            high = data.level
+        }
+
+        let newRadius = data.level * 100;
+
+        if (newRadius < 1) {
+            newRadius = 1;
+        }
+
+        $("#micCircle").attr("r", newRadius);
     });
 });

@@ -1,8 +1,7 @@
-import eventlet
+import eventlet, threading
 eventlet.monkey_patch()
 
 from _utils import *
-import logging
 
 from brain import Brain
 from gui import GUI

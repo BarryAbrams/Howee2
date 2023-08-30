@@ -8,11 +8,11 @@ class GUI:
         self.socketio = SocketIO(self.app)
         self.brain = brain
         self.setup_routes()
+        print("GUI STARTED")
 
     def setup_routes(self):
         @self.app.route('/')
         def index():
-            # Assuming the HTML file is named 'index.html' and is located in a 'templates' directory.
             return render_template('index.html')
 
         @self.socketio.on('send-input')
@@ -25,11 +25,11 @@ class GUI:
             # print("state")
             self.brain.emit_state()
             self.brain.eyes.emit_state()
-
-        # Add other routes as needed.
+            self.brain.mouth.emit_state()
 
     def run(self):
+        print("GUI RUN")
 
-        self.socketio.run(self.app, host='0.0.0.0', port=5001, debug=False)
+        self.socketio.run(self.app, host='0.0.0.0', port=8080, debug=False)
 
 
