@@ -164,7 +164,7 @@ class Mouth:
         # Choose a random SFX from the unused list, remove it from the list
         random_sfx = random.choice(self.unused_sfx_sounds)
         self.unused_sfx_sounds.remove(random_sfx)
-        random_sfx = random_sfx - 6
+        random_sfx = random_sfx - 3
 
         # Overlay the SFX at the beginning of the main sound
         main_sound = main_sound.overlay(random_sfx, position=0)

@@ -1,0 +1,4 @@
+.env file with 
+OPENAI_KEY=""
+WEATHER_KEY=""
+PICOVOICE_KEY=""
