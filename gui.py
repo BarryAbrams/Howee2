@@ -1,12 +1,15 @@
 from flask import Flask, jsonify, request, render_template
 from flask_socketio import SocketIO
 from _utils import *  
+import subprocess
+import pygame
 
 class GUI:
     def __init__(self, brain):
         self.app = Flask(__name__)
         self.socketio = SocketIO(self.app)
         self.brain = brain
+    
         self.setup_routes()
         print("GUI STARTED")
 
@@ -26,6 +29,16 @@ class GUI:
             self.brain.emit_state()
             self.brain.eyes.emit_state()
             self.brain.mouth.emit_state()
+            self.emit_current_volume()
+
+        @self.socketio.on('set-volume')
+        def handle_set_volume(data):
+            volume_percentage = float(data['volume']) / 100.0
+            self.brain.mouth.volume = volume_percentage
+            self.emit_current_volume()
+
+    def emit_current_volume(self):
+        self.socketio.emit('system_volume', {'volume': self.brain.mouth.volume * 100})
 
     def run(self):
         print("GUI RUN")

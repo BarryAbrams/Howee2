@@ -9,7 +9,7 @@ polly = boto3.client('polly', region_name='us-west-2')
 from _utils import howee_speak
 
 class Mouth:
-    def __init__(self):
+    def __init__(self, done_speaking_callback):
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
         pygame.init()
         pygame.mixer.init()
@@ -25,13 +25,15 @@ class Mouth:
         self.thread.start()
         self.unused_sfx_sounds = []
         self.last_deviation_time = 0
+        self.done_speaking_callback = done_speaking_callback
+        self.volume = 0.5
 
     def _run(self):
         if not os.path.exists("audio"):
             os.makedirs("audio")
         while True:
             self.emit_state()
-            time.sleep(0.033)
+            time.sleep(0.5)
 
     def speak(self, message):
         howee_speak(message)
@@ -60,13 +62,14 @@ class Mouth:
             sound.export(temp_wav.name, format="wav")
             self.change_voice(temp_wav.name, temp_wav.name)
             pygame.mixer.music.load(temp_wav.name)
+            pygame.mixer.music.set_volume(self.volume)
             pygame.mixer.music.play()
 
             start_time = time.time()
             while pygame.mixer.music.get_busy():
                 elapsed_time = time.time() - start_time
                 self.current_segment = int(elapsed_time * 1000 / segment_duration)
-                time.sleep(0.01)
+                time.sleep(0.1)
 
         self.current_segment = len(self.segments)
 
@@ -178,9 +181,18 @@ class Mouth:
                 self.play_and_analyze(output_file)
                 os.remove(output_file)
                 self.audio_queue.task_done()
+                if self.audio_queue.empty():  # Check if the queue is empty
+                    self.queue_emptied_callback()  # Call the callback
+            
             except Exception as e:
                 self.audio_queue.task_done()
                 print(f"Error: {e}")
+
+    def queue_emptied_callback(self):
+        if self.done_speaking_callback:
+            self.done_speaking_callback()
+        # Add any additional logic you want to execute when the queue is emptied
+
 
     def emit_state(self):
         if self.current_segment < len(self.segments):

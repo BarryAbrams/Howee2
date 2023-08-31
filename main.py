@@ -1,4 +1,4 @@
-import eventlet, threading
+import eventlet, threading, cProfile
 eventlet.monkey_patch()
 
 from _utils import *
@@ -19,3 +19,4 @@ if __name__ == '__main__':
     brain.start()
     set_socketio_instance(gui.socketio)
     gui.run()
+    

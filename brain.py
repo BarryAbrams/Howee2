@@ -4,7 +4,7 @@ from _utils import *
 from knowledge import System, OpenAI, Weather
 from mouth import Mouth
 from ears import Ears
-from eyes import Eyes
+# from eyes import Eyes
 from flask_socketio import SocketIO
 
 user_input_value = None
@@ -15,9 +15,9 @@ def get_input_from_user(prompt):
 
 class Brain:
     def __init__(self):
-        self.mouth = Mouth()
+        self.mouth = Mouth(self._done_speaking_callback)
         self.ears = Ears()
-        self.eyes = Eyes()
+        # self.eyes = Eyes()
         self.knowledge_sources = {
             "system": System(self.transition),
             "openai": OpenAI(self.transition),
@@ -35,9 +35,16 @@ class Brain:
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
         self.transition(AwakeState.ASLEEP, ActionState.LISTENING)
-        self.eyes.socketio = self.socketio
+        # self.eyes.socketio = self.socketio
         self.mouth.socketio = self.socketio
         self.ears.socketio = self.socketio
+
+        # self.eyes_thread = threading.Thread(target=self.eyes._run)
+        # self.eyes_thread.start()
+
+
+        # self.servo_thread = threading.Thread(target=self.eyes.servos._run)
+        # self.servo_thread.start()
 
     def transition(self, awake=None, action=None):
         if awake:
@@ -63,16 +70,22 @@ class Brain:
                 if wake_word:
                     if self.user_input:
                         you_speak(self.user_input)
-                        self._filter_in_voice("Hello")
-                    self.transition(AwakeState.AWAKE, ActionState.LISTENING)
+                    else:
+                        you_speak(wake_word)
+                    self._filter_in_voice("Hello")
+                    self.transition(AwakeState.AWAKE, ActionState.TALKING)
             elif self.awake_state == AwakeState.AWAKE:
                 if self.action_state == ActionState.LISTENING:
                     input_words = self._listen_for_input() or self.user_input
                     if input_words:
                         if self.user_input:
                             you_speak(self.user_input)
-                            self.transition(AwakeState.AWAKE, ActionState.PROCESSING)
                             self._process_input(self.user_input)
+                        else:
+                            you_speak(input_words)
+                            self._process_input(input_words)
+                        self.transition(AwakeState.AWAKE, ActionState.PROCESSING)
+                        
                 elif self.action_state == ActionState.PROCESSING:
                     # this handling will happen within the functions called _process_input from
                     pass
@@ -86,8 +99,14 @@ class Brain:
             self.user_input = None
             self.action_state_prev = self.action_state
             self.awake_state_prev = self.awake_state
+            
+            if self.awake_state != ActionState.LISTENING:
+                time.sleep(0.01)
 
-            time.sleep(0.01)
+    def _done_speaking_callback(self):
+        time.sleep(.5)
+        self.transition(AwakeState.AWAKE, ActionState.LISTENING)
+        self.ears.reset_recorder()
             
     def _filter_in_voice(self, message):
         return self.knowledge_sources["openai"].query_voice(message, self.mouth.speak)
@@ -95,12 +114,12 @@ class Brain:
     def _listen_for_wake_word(self):
         detected_word = self.ears.listen_for_wake_word()
         if detected_word:
-            you_speak(detected_word)
             self.listening_for_wake_word = False  # Reset the flag when done listening
             return detected_word
 
 
     def _listen_for_input(self):
+        # pass
         return self.ears.listen_for_input()
                
     def _process_input(self, user_input):

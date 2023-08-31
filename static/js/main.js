@@ -94,7 +94,7 @@ socket.on('state_change', function(data) {
     });
 
     socket.on('ear_change', function(data) {
-        // console.log(data.level)
+        console.log(data.level)
         if (data.level > high) {
             high = data.level
         }
@@ -107,4 +107,20 @@ socket.on('state_change', function(data) {
 
         $("#micCircle").attr("r", newRadius);
     });
+
+    socket.on('system_volume', function(data) {
+        $('#volumeSlider').val(data.volume)
+        
+    });
+
+    $(document).ready(function() {
+        // Listen for changes to the volume slider
+        $('#volumeSlider').on('change', function() {
+            var volume = $(this).val();
+            socket.emit('set-volume', { volume: volume });
+        });
+        
+    
+    });
+    
 });
