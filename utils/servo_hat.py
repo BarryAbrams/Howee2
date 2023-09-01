@@ -9,10 +9,10 @@ class PiServoHatWrapper:
 
         self.x_axis = ServoController(self, 0, 10, 170)
         self.y_axis = ServoController(self, 1, 30, 120)
-        self.rt_eyelid = ServoController(self, 2, 160, 0) # right top (180, 0)
-        self.rb_eyelid = ServoController(self, 4, 0, 160) # right bottom (180, 0)
-        self.lt_eyelid = ServoController(self, 3, 0, 160) # left top (180, 0)
-        self.lb_eyelid = ServoController(self, 5, 150, 0) # left bottom (180,0)
+        self.rt_eyelid = ServoController(self, 2, 135, 10) # right top (180, 0)
+        self.rb_eyelid = ServoController(self, 4, 10, 160) # right bottom (180, 0)
+        self.lt_eyelid = ServoController(self, 3, 10, 130) # left top (180, 0)
+        self.lb_eyelid = ServoController(self, 5, 130, 10) # left bottom (180,0)
 
         self.last_move_time = 0
         self.last_center_x = None
@@ -41,27 +41,30 @@ class PiServoHatWrapper:
     def _run(self):
         while True:
             start_time = time.time()
-            speed = .15
+            speed = .25
 
             if self.state == 'blinking':
-                speed = .8
+                speed = .9
                 if not self.blink_start_time:
-                    # Set the start time for the blink when it first begins
                     self.blink_start_time = start_time
 
-                # Set target positions for a blink
-                self.target_positions = [(self.rt_eyelid, 0), (self.lt_eyelid, 0), (self.rb_eyelid, 0), (self.lb_eyelid, 0)]
+                self.target_positions = [(self.rt_eyelid, 0), (self.rb_eyelid, 0), (self.lt_eyelid, 0),  (self.lb_eyelid, 0)]
 
-                # Check if enough time has passed for the blink to complete
                 if start_time - self.blink_start_time > 0.1:  # Adjust this duration as needed
                     self.blink_start_time = None  # Reset the blink start time
                     self.state = 'unblinking_after_blink'
 
             elif self.state == 'unblinking_after_blink':
-                # Set target positions to unblink
-                speed = .6
+                speed = .7
                 self.target_positions = self.calculate_eyelid_positions(self.y_axis.get_current_position())
                 self.state = 'unblinking'
+            elif self.state == 'close':
+                speed = .9
+                if not self.blink_start_time:
+                    self.blink_start_time = start_time
+
+                self.target_positions = [(self.rt_eyelid, 0), (self.rb_eyelid, 0), (self.lt_eyelid, 0),   (self.lb_eyelid, 0)]
+
 
             if self.target_positions is not None:
                 for servo, target_position in self.target_positions:
@@ -74,17 +77,20 @@ class PiServoHatWrapper:
             
     def activate(self):
         print("ACTIVATE")
-        self.blinking_thread_stop = False  # Reset the flag
+        self.state = "unblinking"
+        # self.blinking_thread_stop = False  # Reset the flag
         self.active = True
         self.servo_hat.wake()
         self.start_blinking()
 
     def deactivate(self):
+        print("DEACTIVATE")
+        self.state = "close"
         self.active = False
         self.stop_blinking()  # Stop the blinking thread
         self.move_eyes(0.5, 0.5)  # Move eyes to center
         servo_positions = [(self.rt_eyelid, 0), (self.lt_eyelid, 0), (self.rb_eyelid, 0), (self.lb_eyelid, 0)]
-        smooth_move_servos(servo_positions, 5)  # Close eyelids
+        self.target_positions = servo_positions  # Close eyelids
 
         timer = threading.Timer(5.0, self.servo_hat.sleep)
         timer.start()
@@ -121,7 +127,6 @@ class PiServoHatWrapper:
                 sleep_elapsed += 0.1
 
             if not self.blinking_thread_stop:
-                print("blink")
                 self.blink()
             
 
@@ -161,8 +166,8 @@ class PiServoHatWrapper:
 
     def calculate_eyelid_positions(self, y_position):
         offset = (y_position - 0.5) * .5
-        top_eyelid_position = 0.65 + offset
-        bottom_eyelid_position = 0.65 - offset
+        top_eyelid_position = 0.5 + offset
+        bottom_eyelid_position = 0.5 - offset
         return [(self.rt_eyelid, top_eyelid_position), (self.lt_eyelid, top_eyelid_position),
                 (self.rb_eyelid, bottom_eyelid_position), (self.lb_eyelid, bottom_eyelid_position)]
 

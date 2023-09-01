@@ -18,5 +18,6 @@ if __name__ == '__main__':
     brain.socketio = gui.socketio
     brain.start()
     set_socketio_instance(gui.socketio)
+    gui.socketio.emit('on_eye_update', {'awake_state':"asleep"})
     gui.run()
     

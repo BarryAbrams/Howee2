@@ -3,6 +3,10 @@ import threading
 import numpy as np
 from utils.servo_hat import PiServoHatWrapper
 
+import socketio
+
+sio = socketio.Client()
+
 # Constants for the person sensor
 PERSON_SENSOR_I2C_ADDRESS = 0x62
 PERSON_SENSOR_I2C_HEADER_FORMAT = "BBH"
@@ -36,7 +40,8 @@ class Eyes:
         self.servo_thread = threading.Thread(target=self.servos._run)
         self.servo_thread.start()
 
-        self.servos.start_blinking()
+        self.servos.deactivate()
+        
     def _run(self):
         while True:
             self.look_for_person()  # Call the method to look for a person
@@ -82,6 +87,24 @@ class Eyes:
 if __name__ == '__main__':
   
     eyes = Eyes()
+
+    @sio.on('connect')
+    def on_connect():
+        print('Connected to server')
+        sio.emit('message', 'Hello from client!')
+
+    @sio.on('on_eye_update')
+    def handle_message(data):
+
+        if data["awake_state"] == "awake":
+            eyes.servos.activate()
+            print("open eyes")
+        elif data["awake_state"] == "asleep":
+            eyes.servos.activate()
+            print("close eyes")
+        print('Eye update:', data)
+
+    sio.connect('http://localhost:8080')
  
    
     

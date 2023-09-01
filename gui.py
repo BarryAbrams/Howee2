@@ -27,7 +27,7 @@ class GUI:
         def request_state():
             # print("state")
             self.brain.emit_state()
-            self.brain.eyes.emit_state()
+            # self.brain.eyes.emit_state()
             self.brain.mouth.emit_state()
             self.emit_current_volume()
 

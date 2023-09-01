@@ -59,9 +59,8 @@ class Ears:
             channels=2)
         
 
-        
         # Threshold can be adjusted based on your mic and environment
-        if audio_segment.dBFS < -20:  
+        if audio_segment.dBFS < -9:  
             self.silence_duration += len(audio_segment) / 1000.0  # Convert from ms to seconds
         else:
             self.silence_duration = 0

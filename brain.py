@@ -73,6 +73,7 @@ class Brain:
                     else:
                         you_speak(wake_word)
                     self._filter_in_voice("Hello")
+                    self.socketio.emit('on_eye_update', {'awake_state':"awake"})
                     self.transition(AwakeState.AWAKE, ActionState.TALKING)
             elif self.awake_state == AwakeState.AWAKE:
                 if self.action_state == ActionState.LISTENING:
