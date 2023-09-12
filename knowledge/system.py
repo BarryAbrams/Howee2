@@ -1,11 +1,16 @@
 from .base import Knowledge
 
+from threading import Timer
+
 import sys
 sys.path.append("..")  # Adds higher directory to python modules path.
 
 from _utils import *
 
 class System(Knowledge):
+    def __init__(self, transition_state_callback):
+        super().__init__(transition_state_callback)
+
 
     def query(self, input):
         if input == "volume_up":
@@ -23,6 +28,11 @@ class System(Knowledge):
         elif input == "unmute":
             self._unmute_volume()
             return "Volume unmuted."
+
+        elif input == "sleep":
+            self._sleep()
+            return "Go To Sleep."
+        
         
         else:
             return f"I'm sorry, I don't recognize the command '{input}'."
@@ -45,4 +55,9 @@ class System(Knowledge):
     def _unmute_volume(self):
         print_c("Unmuted", "red")
         # Logic to unmute volume
+        pass
+
+    def _sleep(self):
+        print_c("Sleep", "red")
+
         pass

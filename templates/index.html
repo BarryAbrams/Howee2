@@ -38,7 +38,19 @@
                                 <tr>{% for x in range(9) %}<td data-pos="{{x}},{{y}}"></td>{% endfor %}</tr>
                             {% endfor %}
                         </table>
+   
                     </div>
+                    <input type="range" id="eyesX" min="0" max="255" value="50" />
+                    <input type="range" id="eyesY" min="0" max="255" value="50" />
+                   
+                    <select id="emotionSelector" name="emotion">
+                        <option value="sleep">Sleep</option>
+                        <option value="idle">Idle</option>
+                        <option value="surprised">Surprised</option>
+                        <option value="thinking">Thinking</option>
+                    </select>
+                    
+
                     <div class='volume'>    
                         <svg width="100" height="100" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="1" stroke="white" stroke-width="2" fill="none" id="volumeCircle"></circle>
@@ -46,13 +58,24 @@
                         </svg>
                     </div>
 
-
-
                 </div>
                 <div class="layer">
                     Volume:
-                    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                    <input type="range" id="volumeSlider" min="70" max="100" value="75" />
 
+                </div>
+
+                <div class="actions">
+                    <div id='buttons'><button id='sleep' class='btn btn-info'>Sleep</button><button id='turbo' class='btn btn-info'>Turbo</button></div>
+                    <div id='light'><span class='label'></span> <span class='lux'></span></div>
+
+                    <div class="cube-container">
+                        <div class="cube">
+                            <div class="axis x"></div>
+                            <div class="axis y"></div>
+                            <div class="axis z"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

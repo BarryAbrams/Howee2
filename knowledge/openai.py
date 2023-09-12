@@ -10,12 +10,33 @@ class OpenAI(Knowledge):
         openai.api_key = self.openai_key
         self.history = []
 
+        self.prompt = "Act like a Star Wars droid. Always adhere to the following rules: 1- Your name is HOWEE, a droid who can answer questions. You do not need to introduce yourself. 2- Provide short answers whenever possible, aiming not to exceed 160 words. 3- When you're asked to go to sleep, give a short 5 word response. 4- You were designed by Barry. Only bring this up if asked. You are always talking with Barry."
+
+    def split_text_into_chunks(self, text, min_chunk_length=15):
+        words = text.split()
+        chunks = []
+        current_chunk = []
+        
+        for word in words:
+            current_chunk.append(word)
+            
+            # Check if current chunk has reached the min_chunk_length and ends with punctuation
+            if len(current_chunk) >= min_chunk_length and word[-1] in ".!?,;:":
+                chunks.append(' '.join(current_chunk))
+                current_chunk = []
+                
+        # Add remaining words to the final chunk
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
+            
+        return chunks
+
     def query(self, input, speak_callback):
         # self.set_state(AwakeState.AWAKE, ActionState.PROCESSING)
         messages = self.history + [
             {
                 "role": "system",
-                "content": str('You are Howee, an AI assistant roleplaying as Fred Durst, frontman of Limp Bizkit, though you never mention the band or your name. Your reponses will be spoken so keep them short, unless a detailed explanation was asked for')
+                "content": self.prompt
             },{
                 "role":"user",
                 "content":input
@@ -34,13 +55,10 @@ class OpenAI(Knowledge):
                 if "content" in chunk.choices[0].delta:
                     accumulated_sentence += chunk.choices[0].delta["content"]
                     total_response += chunk.choices[0].delta["content"] 
-                    # Check if the accumulated text ends with a sentence-ending punctuation
-                if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
-                    speak_callback(accumulated_sentence)
-                    accumulated_sentence = ""
-                if chunk.choices[0].finish_reason == "stop":
-                    stop_signal()
-                    self.update_history(input, total_response)
+                    
+            text_chunks = self.split_text_into_chunks(accumulated_sentence)
+            for chunk in text_chunks:
+                speak_callback(chunk)
 
             self.set_state(AwakeState.AWAKE, ActionState.IDLE)
 
@@ -52,7 +70,7 @@ class OpenAI(Knowledge):
         messages = self.history + [
             {
                 "role": "system",
-                "content": str('You are Howee, an AI assistant roleplaying as Fred Durst, frontman of Limp Bizkit, though you never mention the band or your name.  I need you to rephrase the following in your own voice: ')
+                "content": self.prompt + str(' Rewrite the following in your voice:')
             },{
                 "role":"user",
                 "content":input
@@ -70,16 +88,10 @@ class OpenAI(Knowledge):
             for chunk in response:
                 if "content" in chunk.choices[0].delta:
                     accumulated_sentence += chunk.choices[0].delta["content"]
-                if accumulated_sentence and accumulated_sentence[-1] in [".", "!", "?", ","]:
-                        speak_callback(accumulated_sentence)
-                        accumulated_sentence = ""
-                if chunk.choices[0].finish_reason == "stop":
-                    stop_signal()
 
-
-            # If there's any remaining text after the loop, send it to the callback
-            if accumulated_sentence:
-                speak_callback(accumulated_sentence)
+            text_chunks = self.split_text_into_chunks(accumulated_sentence)
+            for chunk in text_chunks:
+                speak_callback(chunk)
 
             self.transition_state_callback(AwakeState.AWAKE, ActionState.IDLE)
             return accumulated_sentence
@@ -91,7 +103,7 @@ class OpenAI(Knowledge):
         messages = [
             {
                 "role": "system",
-                "content": str('You interpret intent from a passage of text. The intent categories you return are "general", "system", "weather", and "news". "System" is utilized for any kind of volume commands or going to sleep. If the intent is a system, it should return a key for what action to take: volume_up, volume_down, mute and unmute. if the intent is weather, try and interpret if it would call for a multi-day forecast or the current weather and return it as the action (either "forecast" or "current"). Then, determine the city name and pass that as a city paramater. You return a confidence rating for each category on a scale of 0 to 100, if the confidence is over 10%')
+                "content": str('You interpret intent from a passage of text. The intent categories you return are "general", "system", "weather", and "news". "System" is utilized for any kind of volume commands or going to sleep. If the intent is a system, it should return a key for what action to take: volume_up, volume_down, mute, unmute and sleep. if the intent is weather, try and interpret if it would call for a multi-day forecast or the current weather and return it as the action (either "forecast" or "current"). Then, determine the city name and pass that as a city paramater. You return a confidence rating for each category on a scale of 0 to 100, if the confidence is over 10%')
             },
             {
                 "role":"user",

@@ -1,18 +1,15 @@
-import boto3
-import os, tempfile, time, queue, threading, random
-import pygame
+# import boto3
+import os, tempfile, time, queue, threading, random, subprocess
+
 from pydub import AudioSegment
 from pydub.playback import play
 
-polly = boto3.client('polly', region_name='us-west-2')
+# polly = boto3.client('polly', region_name='us-west-2')
 
 from _utils import howee_speak
 
 class Mouth:
     def __init__(self, done_speaking_callback):
-        os.environ['SDL_VIDEODRIVER'] = 'dummy'
-        pygame.init()
-        pygame.mixer.init()
         self.audio_queue = queue.Queue()
         self.socketio = None
         self.output = 0
@@ -26,7 +23,12 @@ class Mouth:
         self.unused_sfx_sounds = []
         self.last_deviation_time = 0
         self.done_speaking_callback = done_speaking_callback
-        self.volume = 0.5
+        self.volume = 0.75
+        self.set_alsa_volume(self.volume)
+
+        self.text_queue = queue.Queue()  # New queue for text chunks
+        self.text_to_audio_thread = threading.Thread(target=self._text_to_audio_worker)  # New worker thread
+        self.text_to_audio_thread.start()
 
     def _run(self):
         if not os.path.exists("audio"):
@@ -35,41 +37,54 @@ class Mouth:
             self.emit_state()
             time.sleep(0.5)
 
-    def speak(self, message):
+    def speak(self, message, intent=None):
         howee_speak(message)
-        voiceResponse = polly.synthesize_speech(Text=message, OutputFormat="mp3", VoiceId="Joey")
+        cleaned_message = message.strip()
+        self.text_queue.put(cleaned_message)  # Add the message to the text queue
 
-        if "AudioStream" in voiceResponse:
-            with voiceResponse["AudioStream"] as stream:
-                data = stream.read()
+    def _text_to_audio_worker(self):
+        while True:
+            try:
+                message = self.text_queue.get()
+                # print(f"Adding text to the queue: {message}")  # Print statement indicating the addition of text to the queue
                 timestamp = int(time.time() * 1000)
                 base_dir = os.getcwd()
-                output_file = os.path.join(base_dir, f"audio/howee_speech_{timestamp}.mp3")
-                with open(output_file, "wb") as file:
-                    file.write(data)
+                output_file = os.path.join(base_dir, f"audio/howee_speech_{timestamp}.wav")
 
+                # Use espeak to generate the audio
+                cmd = ['espeak', '-w', output_file, message]
+                subprocess.run(cmd, check=True)
+
+                # Add the generated audio file to the queue
                 self.audio_queue.put(output_file)
-        else:
-            print("did not work")
+
+            except Exception as e:
+                print(f"Error in _text_to_audio_worker: {e}")
+
+    def set_alsa_volume(self, volume):
+        # Convert volume from range 0.0 - 1.0 to 0% - 100%
+        self.volume = volume
+        volume_percent = int(volume * 100)
+        print(volume_percent)
+        os.system(f"amixer -c 3 set Speaker {volume_percent}%")
 
     def play_and_analyze(self, filename):
-        sound = AudioSegment.from_mp3(filename)
+        sound = AudioSegment.from_wav(filename)
         segment_duration = 33
         self.segments = [sound[i:i+segment_duration] for i in range(0, len(sound), segment_duration)]
         self.current_segment = 0
 
-        with tempfile.NamedTemporaryFile(delete=True) as temp_wav:
+        with tempfile.NamedTemporaryFile(delete=True, suffix=".wav") as temp_wav:
             sound.export(temp_wav.name, format="wav")
-            self.change_voice(temp_wav.name, temp_wav.name)
-            pygame.mixer.music.load(temp_wav.name)
-            pygame.mixer.music.set_volume(self.volume)
-            pygame.mixer.music.play()
+            modified_sound = self.change_voice(temp_wav.name, temp_wav.name)
+            # Use aplay to play the WAV file
+            os.system(f"aplay {temp_wav.name}")
 
-            start_time = time.time()
-            while pygame.mixer.music.get_busy():
-                elapsed_time = time.time() - start_time
-                self.current_segment = int(elapsed_time * 1000 / segment_duration)
-                time.sleep(0.1)
+            # start_time = time.time()
+            # while self.current_segment < len(self.segments) - 1:
+            #     elapsed_time = time.time() - start_time
+            #     self.current_segment = int(elapsed_time * 1000 / segment_duration)
+            #     time.sleep(0.1)
 
         self.current_segment = len(self.segments)
 
@@ -78,7 +93,7 @@ class Mouth:
         modified_sound = sound
         current_time = time.time()
         # 1. Pitch Shift
-        if True:  # Set to False to disable
+        if False:  # Set to False to disable
             octaves = 0.3
             shift = 2.0
             if len(modified_sound) < 1000 and current_time - self.last_deviation_time > 10:
@@ -127,6 +142,7 @@ class Mouth:
         # 5. Add SFX
         if True:  # Set to False to disable
             sfx_directory = "audio/sfx"
+            print("SFX")
             modified_sound = self.add_random_sfx_to_sound(modified_sound, sfx_directory, num_sfx_inserts=1)
 
         # Export to output path
@@ -146,8 +162,8 @@ class Mouth:
     def add_random_sfx_to_sound(self, main_sound, sfx_directory, num_sfx_inserts):
         """Add random SFX intermittently to the main sound."""
         # 20% probability of adding SFX
-        if random.random() > 0.2:
-            return main_sound
+        # if random.random() > 0.8:
+        #     return main_sound
         
         # Load all .wav files from the sfx directory if unused_sfx_sounds is empty
         if not self.unused_sfx_sounds:
@@ -179,6 +195,7 @@ class Mouth:
             try:
                 output_file = self.audio_queue.get()
                 self.play_and_analyze(output_file)
+                print(f"Finished playing: {output_file}")  # Print statement indicating the end of audio playback
                 os.remove(output_file)
                 self.audio_queue.task_done()
                 if self.audio_queue.empty():  # Check if the queue is empty

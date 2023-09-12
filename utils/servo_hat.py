@@ -7,10 +7,10 @@ class PiServoHatWrapper:
         self.servo_hat.restart()
         self.servo_hat.set_pwm_frequency(frequency)
 
-        self.x_axis = ServoController(self, 0, 10, 170)
-        self.y_axis = ServoController(self, 1, 30, 120)
-        self.rt_eyelid = ServoController(self, 2, 135, 10) # right top (180, 0)
-        self.rb_eyelid = ServoController(self, 4, 10, 160) # right bottom (180, 0)
+        self.x_axis = ServoController(self, 0, 20, 210)
+        self.y_axis = ServoController(self, 1, 55, 123)
+        self.rt_eyelid = ServoController(self, 2, 145, 30) # right top (180, 0)
+        self.rb_eyelid = ServoController(self, 4, 10, 180) # right bottom (180, 0)
         self.lt_eyelid = ServoController(self, 3, 10, 130) # left top (180, 0)
         self.lb_eyelid = ServoController(self, 5, 130, 10) # left bottom (180,0)
 
@@ -22,6 +22,7 @@ class PiServoHatWrapper:
         self.state = 'unblinking'
 
         self.active = True
+        self.opening = 0.5
 
         self.current_positions = {
             self.x_axis: 0.5,
@@ -34,6 +35,8 @@ class PiServoHatWrapper:
 
         self.target_positions = None
         self.blink_start_time = None
+
+        self.pause_blinks = False
 
         # self.thread = threading.Thread(target=self._run)
         # self.thread.start()
@@ -119,16 +122,26 @@ class PiServoHatWrapper:
     def random_blink(self):
         self.blinking_thread_stop = False
         while not self.blinking_thread_stop:
-            total_sleep = random.uniform(2, 10)
-            sleep_elapsed = 0
+            if not self.pause_blinks:  # Only blink if blinks are not paused
+                total_sleep = random.uniform(2, 10)
+                sleep_elapsed = 0
 
-            while sleep_elapsed < total_sleep and not self.blinking_thread_stop:
-                time.sleep(0.1)  # sleep in small chunks
-                sleep_elapsed += 0.1
+                while sleep_elapsed < total_sleep and not self.blinking_thread_stop:
+                    time.sleep(0.1)  # sleep in small chunks
+                    sleep_elapsed += 0.1
 
-            if not self.blinking_thread_stop:
-                self.blink()
-            
+                if not self.blinking_thread_stop:
+                    self.blink()
+            else:
+                time.sleep(0.5)  # Sleep for a brief period if blinking is paused
+                
+
+    # Methods to pause and resume blinking
+    def pause_blinking(self):
+        self.pause_blinks = True
+
+    def resume_blinking(self):
+        self.pause_blinks = False
 
     def move_servo_position(self, channel, angle, duration):
         self.servo_hat.move_servo_position(channel, angle, duration)
@@ -165,9 +178,10 @@ class PiServoHatWrapper:
         self.target_positions = servo_positions
 
     def calculate_eyelid_positions(self, y_position):
-        offset = (y_position - 0.5) * .5
-        top_eyelid_position = 0.5 + offset
-        bottom_eyelid_position = 0.5 - offset
+        opening = self.opening
+        offset = (y_position - opening) * opening
+        top_eyelid_position = opening + offset
+        bottom_eyelid_position = opening - offset
         return [(self.rt_eyelid, top_eyelid_position), (self.lt_eyelid, top_eyelid_position),
                 (self.rb_eyelid, bottom_eyelid_position), (self.lb_eyelid, bottom_eyelid_position)]
 
